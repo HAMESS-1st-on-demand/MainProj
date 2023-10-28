@@ -133,8 +133,8 @@ void* func1(void* arg) {
         {
             rmsgTime = millis();
             pthread_mutex_lock(&mutex);
-            // local_status = sd.status;
-            local_status = 1;
+            local_status = sd.status;
+            // local_status = 1;
             if(sd.RcvMsg == 1)
             {
                 rcvBuf = sd.rbuf;
@@ -164,7 +164,7 @@ void* func1(void* arg) {
             {
                 lightTime = now;
                 int light = readLightSensor();
-                light_sensor_exec(light, &tintingFlag); // 왜 이거?
+                light_sensor_exec(light, &tintingFlag);
                 dprintf(log_fd, "%s %lu 조도 센서 : %d, buffer : %d\n", get_current_time(), pthread_self(), light, (int)buffer);
             }
         
@@ -290,7 +290,7 @@ void* func2(void* arg) {
     dprintf(log_fd, "%s %lu start\n", get_current_time(), pthread_self());
     
     // ttyS0 이 아닌 ttyUSB0 <= dmesg | tail로 확인
-    int uart_fd = serialOpen("/dev/ttyACM0", BAUD); // ARDUINO R3 USB => ttyACM0, UNO => ttyUSB0
+    int uart_fd = serialOpen("/dev/ttyUSB0", BAUD); // ARDUINO R3 USB => ttyACM0, UNO => ttyUSB0
     if(uart_fd == -1)
     {
         log_message("Device file open error!!\n", mainThreadId);
