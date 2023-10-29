@@ -24,9 +24,8 @@ void log_message(const char *format, int thread_id) {
     if(fd < 0){
         return;
     }
-    dprintf(fd, "%s %lu : %s\n", get_current_time(), thread_id, format);
+    dprintf(fd, "%s %lu : %s", get_current_time(), thread_id, format);
     printf("%s %lu : %s", get_current_time(), thread_id, format);
-    printf("\n");
     close(fd);
     return;
 }

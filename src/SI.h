@@ -33,7 +33,7 @@
 //센서별 임계값
 #define LIGHT_TH 300
 #define RAIN_TH 2000
-#define WATERLEV_TH 2770
+#define WATERLEV_TH 2000
 #define DUST_TH 2000
 #define TEMPER_TH1 30
 #define TEMPER_TH2 40
@@ -43,7 +43,7 @@
 #define RAIN_PER 1000
 #define WATERLEV_PER 1000
 #define DUST_PER 5000
-#define TEMPER_PER 10000
+#define TEMPER_PER 1000 // 5000
        
 // SPI를 setup
 // SPI에 사용되는 CS, LED를 OUTPUT모드로 설정

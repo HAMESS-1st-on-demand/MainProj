@@ -25,7 +25,7 @@ struct sharedData // 공유 자원을 위한 구조체
     unsigned char RcvMsg;
     char sbuf;
     char rbuf;
-    unsigned char status; // open/close
+    unsigned char status; // close / Open : 0 / 1
 };
 
 struct sharedData sd; // 공유 자원 정의
@@ -67,8 +67,14 @@ void ssrButtonInterrupt(void) {
         if (digitalRead(SSR_STATE_BUTT_PIN) == LOW) {
             ssrStateFlag = !ssrStateFlag;
             printf("ssrStateFlag: %d\n",ssrStateFlag);
-            if(ssrStateFlag) digitalWrite(SSR_STATE_LED_PIN,HIGH);
-            else digitalWrite(SSR_STATE_LED_PIN,LOW);
+            if(ssrStateFlag){
+                digitalWrite(SSR_STATE_LED_PIN,HIGH);
+                log_message("ssrStateFlag On\n", mainThreadId);
+            }
+            else {
+                digitalWrite(SSR_STATE_LED_PIN,LOW);
+                log_message("ssrStateFlag Off\n", mainThreadId);
+            }
         }
         ISR1Time = millis();
     }
@@ -79,9 +85,14 @@ void tintingButtonInterrupt(void) {
     if(millis()-ISR2Time>1000){
         if (digitalRead(TINTING_BUTT_PIN) == LOW) {
             tintingFlag = !tintingFlag;
-            printf("tintingFlag: %d\n",tintingFlag);
-            if(tintingFlag) digitalWrite(TINTING_LED_PIN,HIGH);
-            else digitalWrite(TINTING_LED_PIN,LOW);
+            if(tintingFlag){
+                digitalWrite(TINTING_LED_PIN,HIGH);
+                log_message("tintingFlag On\n", mainThreadId);
+            }
+            else {
+                digitalWrite(TINTING_LED_PIN,LOW);
+                log_message("tintingFlag Off\n", mainThreadId);
+            }
         }
         ISR2Time = millis();
     }
@@ -123,6 +134,7 @@ void* func1(void* arg) {
             rmsgTime = millis();
             pthread_mutex_lock(&mutex);
             local_status = sd.status;
+            // local_status = 1;
             if(sd.RcvMsg == 1)
             {
                 rcvBuf = sd.rbuf;
@@ -131,18 +143,19 @@ void* func1(void* arg) {
                 isObeyed = sd.ArduinoIdle;
                 sd.RcvMsg = 0;
                 MSB = rcvBuf | (1 << 7);
-                dprintf(log_fd, "%s %lu SharedMemory Data => Complete: %c, Arduino status : %c, isOpened : %c\n", get_current_time(), pthread_self(), MSB, isObeyed, isOpened);
+                dprintf(log_fd, "%s %lu SharedMemory Data => Complete: %d, Arduino status : %d, isOpened : %d\n", get_current_time(), pthread_self(), (int)MSB, (int)isObeyed, (int)isOpened);
             }
             pthread_mutex_unlock(&mutex);
+            dprintf(log_fd, "%s %lu receive : %d, state : %d \n", get_current_time(), pthread_self(), rmsgTime, local_status);
         }
         // 수위 감지 센서 추가
         if (now - waterTime >= WATERLEV_PER){
             waterTime = now;
             int waterLev = readWaterLevelSensor();
-            if (local_status && (waterLev > WATERLEV_TH)){ // 판단
+            if ((local_status==0) && (waterLev > WATERLEV_TH)){ // 판단
                 buffer |= 1 << 4; // buffer: 10000
             }
-            dprintf(log_fd, "%s %lu 수위 센서 %d\n", get_current_time(), pthread_self(), (int)buffer);
+            dprintf(log_fd, "%s %lu 수위 센서 : %d, buffer : %d\n", get_current_time(), pthread_self(), waterLev, (int)buffer);
         }
 
         if(ssrStateFlag){ // SSR 기능이 켜져있을 때만 센서 값 검사
@@ -151,8 +164,8 @@ void* func1(void* arg) {
             {
                 lightTime = now;
                 int light = readLightSensor();
-                light_sensor_exec(light, &tintingFlag); // 왜 이거?
-                dprintf(log_fd, "%s %lu 조도 센서 %d\n", get_current_time(), pthread_self(), (int)buffer);
+                light_sensor_exec(light, &tintingFlag);
+                dprintf(log_fd, "%s %lu 조도 센서 : %d, buffer : %d\n", get_current_time(), pthread_self(), light, (int)buffer);
             }
         
             // rain 센서추가 
@@ -162,14 +175,21 @@ void* func1(void* arg) {
                 int rain = readRainSensor();
                 printf("[%d] rain = %d\n", now/100,rain);
 
-                if((local_status) &&rain<RAIN_TH){ //판단
-                    buffer |= 1<<3; //buffer: 01000
+                if(rain < RAIN_TH && (local_status == 1)) // 비가 오고, status == 1이면
+                // 비가 오고, 문이 열려 있으면 닫는다
+                {
+                    buffer |= 1 << 3; //buffer: 01000
                 }
-                else if((!local_status) &&rain>RAIN_TH+1000){ //썬루프 여는 로직
-                    buffer &= !(1<<3); //buffer: 01000
+                else{
+                    buffer &= ~(1 << 3);
                 }
-                
-                dprintf(log_fd, "%s %lu rain 센서 %d\n", get_current_time(), pthread_self(), (int)buffer);
+                // if((local_status==1) &&rain<RAIN_TH){ //판단
+                //     buffer |= 1<<3; //buffer: 01000
+                // }
+                // else if((local_status==0) && rain>RAIN_TH+1000){ //썬루프 여는 로직
+                //     buffer &= !(1<<3); //buffer: 01000
+                // }
+                dprintf(log_fd, "%s %lu rain 센서 : %d, buffer : %d\n", get_current_time(), pthread_self(), rain, (int)buffer);
             }
 
             // 미세먼지 센서 추가
@@ -179,13 +199,20 @@ void* func1(void* arg) {
                 int dust = readDustSensor();
                 printf("[%d] dust = %d\n", now/100,dust);
                 
-                if((local_status) && dust>DUST_TH){ //판단
-                    buffer |= 1<<2; //buffer: 00100
-                }else if((!local_status) && dust<DUST_TH-1000){ //썬루프 여는 로직
-                    buffer &= !(1<<2);
+                // if((local_status==1) && dust>DUST_TH){ //판단
+                //     buffer |= 1<<2; //buffer: 00100
+                // }else if((local_status==0) && dust<DUST_TH-1000){ //썬루프 여는 로직
+                //     buffer &= !(1<<2);
+                // }
+
+                if(dust > DUST_TH && (local_status==1)) // 문 열려있을 때 미세먼지면 닫는다.
+                {
+                    buffer |= (1 << 2); // buffer : 00100
+                }else{
+                    buffer &= ~(1 << 2);
                 }
 
-                dprintf(log_fd, "%s %lu 미세먼지 센서 %d\n", get_current_time(), pthread_self(), (int)buffer);
+                dprintf(log_fd, "%s %lu 미세먼지 센서 : %d, buffer : %d\n", get_current_time(), pthread_self(), dust, (int)buffer);
             }
         
             // 온습도 센서 추가
@@ -201,20 +228,20 @@ void* func1(void* arg) {
                 }
                 printf("[%d] temper1 = %d, temper2 = %d \n", now/10000,temper1,temper2);
 
-                if((local_status) && temper1<temper2&&temper2>TEMPER_TH1){ //판단
+                if((local_status==1) && temper1<temper2&&temper2>TEMPER_TH1){ //판단
                     buffer |= 1<<1; //buffer: 00010
                 }
-                else if((!local_status) && temper1>temper2&&temper1>TEMPER_TH2){
+                else if((local_status==0) && temper1>temper2&&temper1>TEMPER_TH2){
                     buffer |= 1; 
                 }
-                dprintf(log_fd, "%s %lu 온습도 센서 %d\n", get_current_time(), pthread_self(), (int)buffer);
+                dprintf(log_fd, "%s %lu 온습도 센서 : <%d, %d> %d\n", get_current_time(), pthread_self(), temper1, temper2, (int)buffer);
             }
         }
 
         // 송신 : 1초마다
         if(millis() - smsgTime >= MSGTIME)
         {
-            dprintf(log_fd, "%s %lu alive : %d\n", get_current_time(), pthread_self(), smsgTime);
+            dprintf(log_fd, "%s %lu send : %d\n", get_current_time(), pthread_self(), smsgTime);
             smsgTime = millis();
             sendBuf = makeMsg(buffer); // buffer를 sendBuf로 변환
             if(sendBuf != 0)
@@ -229,6 +256,7 @@ void* func1(void* arg) {
                     sd.SendMsg = 1;
                     dprintf(log_fd, "%s %lu send msg flag up : %d\n", get_current_time(), pthread_self(), (int)sd.sbuf);
                 }
+                sendBuf = 0;
                 pthread_mutex_unlock(&mutex);
             }
         }
@@ -262,7 +290,7 @@ void* func2(void* arg) {
     dprintf(log_fd, "%s %lu start\n", get_current_time(), pthread_self());
     
     // ttyS0 이 아닌 ttyUSB0 <= dmesg | tail로 확인
-    int uart_fd = serialOpen("/dev/ttyUSB0", BAUD);
+    int uart_fd = serialOpen("/dev/ttyUSB0", BAUD); // ARDUINO R3 USB => ttyACM0, UNO => ttyUSB0
     if(uart_fd == -1)
     {
         log_message("Device file open error!!\n", mainThreadId);
@@ -272,7 +300,7 @@ void* func2(void* arg) {
         log_message("Thread2 is terminated.\n", mainThreadId);
         return NULL;
     }
-    
+    unsigned char local_status = 0, MSB = 0, priority = 0, isOpened=0, isMoving=0, isObeyed = 0;
     int times = millis();
     while(!stop_thread2) {
         // 계속해서 값을 받는다. 
@@ -313,6 +341,13 @@ void* func2(void* arg) {
             printf("===> Received : %d\n", (int)buf);
             serialFlush(uart_fd);
             dprintf(log_fd, "%s %lu Received Msg trom Arduino : %d\n", get_current_time(), pthread_self(), (int)buf);
+            pthread_mutex_lock(&mutex);
+            sd.RcvMsg = 1;
+            sd.rbuf = buf;
+            sd.status = (buf & (1 << 2)) >> 2; // open인지 close인지
+            sd.ArduinoIdle = buf & 1; // obey
+            pthread_mutex_unlock(&mutex);
+            MSB = (buf & (1 << 7)) >> 7;
         }
 
         if (stop_thread2) {
@@ -400,6 +435,8 @@ int main()
             pthread_join(thread1, NULL);
             pthread_create(&thread1, NULL, &func1, NULL);
             thread1_alive = 1;
+        }else{
+            log_message("Thread1 running\n", mainThreadId);
         }
         if(!thread2_alive)
         {
@@ -407,9 +444,16 @@ int main()
             pthread_join(thread2, NULL);
             pthread_create(&thread2, NULL, &func2, NULL);
             thread2_alive = 1;
+        }else{
+            log_message("Thread2 running\n", mainThreadId);
         }
         sleep(1);
     }
+
+    // LED OFF 진행 
+    digitalWrite(TINTING_LED_PIN,LOW);
+    digitalWrite(SSR_STATE_LED_PIN,LOW);
+
     pthread_kill(thread1, SIGUSR1);
     pthread_kill(thread2, SIGUSR2);
 
