@@ -1,4 +1,4 @@
-![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/ab125ff1-8631-48e9-8a6e-1c6f79b318d0)# MainProj
+# MainProj
 
 ## CMake
 
