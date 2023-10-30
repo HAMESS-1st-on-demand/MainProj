@@ -416,8 +416,9 @@ void loop() {
 
 ## 시스템 구조도
 
-### 부품 사양서
 ![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/47985aaa-4058-48f1-a96b-1860aff177d6)
+
+![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/737993be-c706-4dec-9610-7d13efcfbbd9)
 
 ### H/W PIN MAP
 
@@ -431,4 +432,3 @@ void loop() {
 
 ![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/bd4557d8-a4db-40bc-af99-1db746f1e28f)
 
-![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/737993be-c706-4dec-9610-7d13efcfbbd9)
