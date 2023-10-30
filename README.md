@@ -414,4 +414,14 @@ void loop() {
 - 명령행 유틸리티 
 - 확장 가능성
 
-  
+## 시스템 구조도
+
+### 부품 사양서
+![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/47985aaa-4058-48f1-a96b-1860aff177d6)
+
+### H/W PIN MAP
+![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/4f2c11d4-eee7-43f8-8a02-7237da7c4543)
+
+![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/ca025523-9ba2-4bff-ab3b-2437768a297d)
+
+
