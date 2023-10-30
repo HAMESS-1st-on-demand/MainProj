@@ -1,4 +1,4 @@
-# MainProj
+![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/ab125ff1-8631-48e9-8a6e-1c6f79b318d0)# MainProj
 
 ## CMake
 
@@ -420,8 +420,15 @@ void loop() {
 ![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/47985aaa-4058-48f1-a96b-1860aff177d6)
 
 ### H/W PIN MAP
+
+#### Raspberry Pi
 ![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/4f2c11d4-eee7-43f8-8a02-7237da7c4543)
 
 ![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/ca025523-9ba2-4bff-ab3b-2437768a297d)
 
+#### Arduino
+![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/469ec187-8367-48d4-91c3-937a0fa30ed9)
 
+![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/bd4557d8-a4db-40bc-af99-1db746f1e28f)
+
+![image](https://github.com/HAMESS-1st-on-demand/MainProj/assets/44926279/737993be-c706-4dec-9610-7d13efcfbbd9)
